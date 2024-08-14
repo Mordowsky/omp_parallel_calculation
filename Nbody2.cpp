@@ -3,7 +3,7 @@
 #include <cmath>
 #include "omp.h"
 
-using namespace std;
+using namespace std; // пока можно так
 
 double modul_in3(const double* initial, const int num, const int i, const int j)
 {
@@ -17,6 +17,7 @@ double modul_in3(const double* initial, const int num, const int i, const int j)
     return (pow(c, 1.5));
 }
 
+// расчет ускорения тела
 double accelpart_xyz(const int type, const double* initial, const int num, const int i, const int j, const double e)
 {
     double G = 6.67e-11;
@@ -39,15 +40,17 @@ double velo_next_type(const int type, const double* initial, const int num, cons
 
 int main()
 {
-    double e = 1.0e-10;
+    double e = 1.0e-10; // очень малое число, нужно для замены нуля на него в операции деления
     setlocale(LC_ALL, "Russian");
-    int num = 7;
+    int num = 7; // Структура массива для каждого тела [mass, x, y, z, Vx, Vy, Vz]
     double ax, ay, az;//компоненты ускорения
-    int num_bodies = 10000;
-    double* initial = new double[num * num_bodies];
+    int num_bodies = 10000; //количество небесных тел
+    double* initial = new double[num * num_bodies]; //создание двумерного массива (развернутого в одномерный) исходных данных
     double dt = 1e-5;//шаг интегрирования
-    double tk = 5e-5; //20.0;//конечное время интегрирования
-#pragma omp parallel for 
+    double tk = 5e-5; //конечное время интегрирования
+    
+    // параллельное задание рандомных начальных условий
+    #pragma omp parallel for 
     for (int i = 0; i < num_bodies; ++i)//Ввод данных из файла
     {
         for (int j = 0; j < 7; ++j)
@@ -56,11 +59,12 @@ int main()
         }
     }
 
-    double t1 = omp_get_wtime();
-    for (int t = 1; (t * dt <= tk); ++t)// Цикл по времени
+    double t1 = omp_get_wtime(); // отсечка начального момента времени
+    for (int t = 1; (t * dt <= tk); ++t)// Цикл по времени. Распараллелить по нему нельзя
     {
         {
-#pragma omp parallel for private(ax,ay,az)
+            // параллельно для каждого тела интегрируется уравнеие движения
+            #pragma omp parallel for private(ax,ay,az)
             for (int i = 0; i < num_bodies; ++i)
             {
                 ax = 0.0;
@@ -82,7 +86,7 @@ int main()
             }
         }
     }
-    double t2 = omp_get_wtime();
+    double t2 = omp_get_wtime(); // отсечка конечного времени расчета
     cout << "Время затраченное на один цикл по времени - " << (t2 - t1) / (tk / dt);
     delete[] initial;
 }
